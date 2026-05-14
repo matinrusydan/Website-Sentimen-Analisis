@@ -1,0 +1,37 @@
+{
+  "accuracy": 90.4,
+  "precision": 90.34,
+  "recall": 90.4,
+  "f1_score": 90.01,
+  "confusion_matrix": [
+    [
+      195,
+      7,
+      6
+    ],
+    [
+      20,
+      58,
+      10
+    ],
+    [
+      5,
+      0,
+      199
+    ]
+  ],
+  "labels": [
+    "Positive",
+    "Neutral",
+    "Negative"
+  ],
+  "adaptation_info": {
+    "source_model": "C:\\laragon\\www\\Rekdat\\models\\indobert_finetuned",
+    "smsa_samples": 11000,
+    "youtube_samples": 233,
+    "oversample_factor": 3,
+    "epochs": 3,
+    "learning_rate": 2e-06,
+    "confidence_threshold": 0.9
+  }
+}
