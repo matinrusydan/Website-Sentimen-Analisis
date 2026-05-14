@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Tahap 1: Data Scraping Mentah</h2>
+        <div>
+            <a href="/" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Kembali ke Scraping</a>
+        </div>
+    </div>
+</div>
+
+<div id="noDataAlert" class="alert alert-warning" style="display: none;">
+    Belum ada data scraping yang tersedia. Silakan lakukan <a href="/">scraping</a> terlebih dahulu.
+</div>
+
+<div id="dashboardContent" style="display: none;">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-success">
+                <div class="card-header bg-success text-white fw-bold">
+                    <i class="fas fa-check-circle me-2"></i>Scraping Berhasil
+                </div>
+                <div class="card-body text-center py-5">
+                    <h3 class="text-success mb-3" id="successMessage">Berhasil mendapatkan N komentar.</h3>
+                    <p class="text-muted mb-4">Data ini masih MENTAH (banyak karakter aneh, emoji, dll) dan belum memiliki label. Silakan Download CSV ini, lalu masuk ke menu Preprocessing untuk tahap selanjutnya.</p>
+                    <button id="btnExport" class="btn btn-success btn-lg px-5">
+                        <i class="fas fa-download me-2"></i>Download RAW CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        const dataStr = localStorage.getItem('sentimentData');
+        
+        if (!dataStr) {
+            $('#noDataAlert').show();
+            return;
+        }
+        
+        const data = JSON.parse(dataStr);
+        $('#dashboardContent').show();
+        
+        if(data.message) {
+            $('#successMessage').text(data.message);
+        }
+        
+        // Setup Export
+        $('#btnExport').on('click', function() {
+            if (data.video_url) {
+                window.location.href = `/api/export?url=${encodeURIComponent(data.video_url)}`;
+            }
+        });
+    });
+</script>
+{% endblock %}

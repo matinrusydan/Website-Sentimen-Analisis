@@ -1,0 +1,12 @@
+flask
+flask_sqlalchemy
+pandas
+numpy
+scikit-learn
+transformers
+torch
+nltk
+Sastrawi
+youtube-comment-downloader
+matplotlib
+wordcloud

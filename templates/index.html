@@ -1,0 +1,167 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm mt-5">
+            <div class="card-body p-5">
+                <h3 class="text-center mb-4">Analisis Sentimen Komentar YouTube<br><small class="text-muted">Program Makan Bergizi Gratis (MBG)</small></h3>
+                
+                <p class="text-center mb-4">
+                    Masukkan link video YouTube untuk memulai proses scraping, pra-pemrosesan, dan analisis sentimen otomatis menggunakan IndoBERT.
+                </p>
+
+                <form id="scrapeForm">
+                    <div class="mb-3">
+                        <label for="youtubeUrl" class="form-label fw-bold">URL Video YouTube</label>
+                        <input type="url" class="form-control form-control-lg" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="commentLimit" class="form-label fw-bold">Batas Jumlah Komentar</label>
+                        <select class="form-select form-select-lg" id="commentLimit">
+                            <option value="100" selected>100 Komentar (Cepat)</option>
+                            <option value="250">250 Komentar</option>
+                            <option value="500">500 Komentar</option>
+                            <option value="750">750 Komentar</option>
+                            <option value="1000">1000 Komentar (Lama)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="btnScrape">
+                            <i class="fas fa-search me-2"></i> Mulai Analisis
+                        </button>
+                    </div>
+                </form>
+
+                <div id="loadingIndicator" class="mt-4" style="display: none;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5>Sedang memproses...</h5>
+                        <p class="text-muted">Proses ini membutuhkan waktu tergantung jumlah komentar.</p>
+                    </div>
+                    
+                    <div class="card mt-3 bg-dark text-light">
+                        <div class="card-header border-secondary">
+                            <i class="fas fa-terminal me-2"></i> Live Logs
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="logContainer" style="height: 200px; overflow-y: auto; padding: 10px; font-family: monospace; font-size: 0.9rem;">
+                                <!-- Logs will appear here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $('#scrapeForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const url = $('#youtubeUrl').val();
+        const limit = $('#commentLimit').val();
+        
+        $('#btnScrape').prop('disabled', true);
+        $('#logContainer').empty();
+        $('#loadingIndicator').show();
+        
+        $.ajax({
+            url: '/api/scrape',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ url: url, limit: limit }),
+            success: function(response) {
+                if (response.success) {
+                    pollStatus(response.task_id);
+                } else {
+                    $('#btnScrape').prop('disabled', false);
+                    $('#loadingIndicator').hide();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: response.message
+                    });
+                }
+            },
+            error: function() {
+                $('#btnScrape').prop('disabled', false);
+                $('#loadingIndicator').hide();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Kesalahan Sistem',
+                    text: 'Terjadi kesalahan saat memulai proses.'
+                });
+            }
+        });
+    });
+
+    function pollStatus(taskId) {
+        const pollInterval = setInterval(() => {
+            $.ajax({
+                url: `/api/task_status/${taskId}`,
+                method: 'GET',
+                success: function(data) {
+                    if (data.status === 'not_found') {
+                        clearInterval(pollInterval);
+                        return;
+                    }
+
+                    // Render logs
+                    if (data.logs && data.logs.length > 0) {
+                        let logsHtml = '';
+                        data.logs.forEach(log => {
+                            logsHtml += `<div>> ${log}</div>`;
+                        });
+                        $('#logContainer').html(logsHtml);
+                        
+                        // Auto scroll to bottom
+                        const logElem = document.getElementById('logContainer');
+                        logElem.scrollTop = logElem.scrollHeight;
+                    }
+
+                    if (data.status === 'completed') {
+                        clearInterval(pollInterval);
+                        
+                        let titleHtml = '';
+                        if (data.result.video_title) {
+                            titleHtml = `<br><br><div class="text-start p-2 bg-light rounded">
+                                <small class="text-muted">Judul Video:</small><br>
+                                <strong><i class="fab fa-youtube text-danger me-1"></i>${data.result.video_title}</strong>
+                            </div>`;
+                        }
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Scraping Berhasil!',
+                            html: `${data.result.message}${titleHtml}`,
+                            showConfirmButton: true,
+                            confirmButtonText: 'Lanjut ke Dashboard'
+                        }).then(() => {
+                            localStorage.setItem('sentimentData', JSON.stringify(data.result));
+                            window.location.href = '/dashboard';
+                        });
+                    } else if (data.status === 'error') {
+                        clearInterval(pollInterval);
+                        $('#btnScrape').prop('disabled', false);
+                        
+                        let lastLog = data.logs && data.logs.length > 0 ? data.logs[data.logs.length - 1] : 'Cek log untuk detailnya.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: lastLog
+                        });
+                    }
+                }
+            });
+        }, 1500); // Poll setiap 1.5 detik
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+# Virtual environments
+.venv/
+venv/
+.venv_*/
+
+# Model weights (too large for git)
+models/
+
+# Database
+database/*.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Large files
+*.whl
+*.csv
+
+# Debug files
+debug_*.json
+cookies.txt
+laporan.md
+
+# Logs
+logs/
+
+# IDE
+.vscode/
+.idea/
