@@ -27,6 +27,7 @@ def export_comments_to_csv(video_url, filename="comments_export.csv"):
             })
             
         df = pd.DataFrame(data)
+        os.makedirs(Config.PROCESSED_DATA_DIR, exist_ok=True)
         filepath = os.path.join(Config.PROCESSED_DATA_DIR, filename)
         df.to_csv(filepath, index=False)
         
