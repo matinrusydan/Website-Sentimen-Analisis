@@ -256,10 +256,15 @@ def preprocess_for_model(text, video_title=None):
         # 8. Whitespace cleaning
         text = _whitespace_clean(text)
 
-        # 9. Context-aware: gabungkan dengan judul video jika ada
+        # 9. Context-aware: gabungkan dengan judul video jika komentar ambigu/pendek
         if video_title:
-            video_title = video_title.lower().strip()
-            text = f"judul: {video_title}. komentar: {text}"
+            # Komentar panjang biasanya sudah jelas arah sentimennya. 
+            # Jika judul panjang yang mengandung kata negatif (Korupsi, KPK) digabung ke komentar positif, 
+            # model bisa bingung. Jadi konteks judul hanya dipakai untuk komentar pendek (< 7 kata).
+            word_count = len(text.split())
+            if word_count < 7:
+                video_title = video_title.lower().strip()
+                text = f"judul: {video_title}. komentar: {text}"
 
         return text
     except Exception as e:
